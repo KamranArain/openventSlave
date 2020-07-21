@@ -125,13 +125,15 @@ void disablePulseOut(void)
 void setup()
 {
   /**************************Pin Initialization*****************************/
-  pinMode(PWM_OUT, OUTPUT); //Pulse Output
+  //OUTPUTs
+  pinMode(PWM_OUT, OUTPUT); // Pulse Output
   pinMode(DIR_PIN, OUTPUT);
-  pinMode(LS1_PIN, INPUT);
-  pinMode(LS2_PIN, INPUT);
-  pinMode(EN1_PIN, OUTPUT);
+  pinMode(EN1_PIN, OUTPUT); // TB6600 Enable Pins
   pinMode(EN2_PIN, OUTPUT);
 
+  //INPUTs
+  pinMode(LS1_PIN, INPUT); // Limit switch 1
+  pinMode(LS2_PIN, INPUT); // Limit switch 2
   /**************************Serial Initialzation **************************/
   Serial.begin(115200);
 
@@ -176,7 +178,7 @@ void CMD_RUN(SerialCommands *sender)
 
   // Read Count
   char *count_str = sender->Next();
-  if (count_str == NULL)
+  if (count_str == NULL) // if count_str is null then return
   {
     sender->GetSerial()->println("ERROR NO COUNT");
     return;
@@ -184,7 +186,7 @@ void CMD_RUN(SerialCommands *sender)
 
   // Read Period
   char *period_str = sender->Next();
-  if (period_str == NULL)
+  if (period_str == NULL) // if period is null then return
   {
     sender->GetSerial()->println("ERROR NO PERIOD");
     return;
@@ -192,7 +194,7 @@ void CMD_RUN(SerialCommands *sender)
 
   // Read Direction
   char *dir_str = sender->Next();
-  if (dir_str == NULL)
+  if (dir_str == NULL) // if direction is null then return
   {
     sender->GetSerial()->println("ERROR NO DIRECTION");
     return;
@@ -200,14 +202,14 @@ void CMD_RUN(SerialCommands *sender)
 
   int dir = atoi(dir_str);
 
-  digitalWrite(DIR_PIN, dir);
+  digitalWrite(DIR_PIN, dir); // set direction
 
   PULSETARGET = atol(count_str);
   long period = atol(period_str);
 
   Serial.println("#RUN 1");
 
-  digitalWrite(EN1_PIN, true);
+  digitalWrite(EN1_PIN, true); // Enable pins high
   digitalWrite(EN2_PIN, true);
 
   Tt = (float)(period * PULSETARGET) / 1e6;
@@ -228,11 +230,13 @@ void CMD_RUN(SerialCommands *sender)
   TCCR1A |= (1 << COM1A1); //Enable pulse output through Timer 1
   TIMSK1 |= (1 << OCIE1A); //Enable Interrupt of Timer 1
 #elif defined(STM32F1xx)
-  Timer2->resume();
+  Timer2->resume();                                    // enable timer
 #endif
+
   PULSECOUNT = 0; //Initialize pulse counter
   t = 0;          //Initialize time for S-Curve
 
+  // Print on uart
   Serial.print("Tt: ");
   Serial.println(Tt, 2);
   Serial.print("St: ");
@@ -253,7 +257,7 @@ void CMD_STOP(SerialCommands *sender)
     Serial.println("#STOP 1");
 
     STATE = STALL;
-    digitalWrite(EN1_PIN, false);
+    digitalWrite(EN1_PIN, false); // Enable set low
     digitalWrite(EN2_PIN, false);
 
     Serial.println("#STOP 2");
@@ -271,7 +275,7 @@ void CMD_HOME(SerialCommands *sender)
   if (STATE != STALL)
     return;
 
-  digitalWrite(EN1_PIN, false);
+  digitalWrite(EN1_PIN, false); // Enable set low
   digitalWrite(EN2_PIN, false);
 
   // Read Period
@@ -285,7 +289,7 @@ void CMD_HOME(SerialCommands *sender)
   // Cmd Rcvd
   Serial.println("#HOME 1");
 
-  digitalWrite(DIR_PIN, HOME_DIR);
+  digitalWrite(DIR_PIN, HOME_DIR); // set direction
 
   long period = atol(period_str);
 
@@ -302,14 +306,14 @@ void CMD_HOME(SerialCommands *sender)
   maxSpd = maxSpd / ((0.5 * (ta + td)) + (Tt - (ta + td)));
   maxSpd = maxSpd + minSpeed;
 
-  digitalWrite(EN1_PIN, true);
+  digitalWrite(EN1_PIN, true); // enable pins high
   digitalWrite(EN2_PIN, true);
 
 #ifdef __AVR__
   TCCR1A |= (1 << COM1A1); //Enable pulse output through Timer 1
   TIMSK1 |= (1 << OCIE1A); //Enable Interrupt of Timer 1
 #elif defined(STM32F1xx)
-  Timer2->resume();
+  Timer2->resume();                                    // resume timer
 #endif
   PULSECOUNT = 0; //Initialize pulse counter
   t = 0;          //Initialize time for S-Curve
@@ -320,15 +324,15 @@ void CMD_HOME(SerialCommands *sender)
   * @param  void
   * @retval void
   */
-void ProcessSCurve()
+void ProcessSCurve(void)
 {
   if (t < ta)
   {
     mySpeed = (float)0.5 * (maxSpd - minSpeed) * (1 + sin((t / ta - 0.5) * PI));
     mySpeed = mySpeed + minSpeed;
-    v = (long)(2e6 / (mySpeed)) - 1;
+    v = (long)(2e6 / (mySpeed)) - 1; // set CCR or ICR values for PWM
     if (v > 65534)
-      v = 65535;
+      v = 65535; // set CCR or ICR values for PWM
   }
 
   if (t >= (Tt - td))
@@ -339,9 +343,9 @@ void ProcessSCurve()
     mySpeed = mySpeed + minSpeed;
     if (mySpeed < minSpeed)
       mySpeed = minSpeed;
-    v = (long)(2e6 / (mySpeed)) - 1;
+    v = (long)(2e6 / (mySpeed)) - 1; // set CCR or ICR values for PWM
     if (v > 65534)
-      v = 65535;
+      v = 65535; // set CCR or ICR values for PWM
   }
 }
 
@@ -368,7 +372,7 @@ void loop()
       disablePulseOut();
       PULSECOUNT = 0;
       STATE = STALL;
-      digitalWrite(EN1_PIN, false);
+      digitalWrite(EN1_PIN, false); // Enable pins set LOW
       digitalWrite(EN2_PIN, false);
       Serial.println("#RUN 2");
     }
