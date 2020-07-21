@@ -95,11 +95,11 @@ void TIM2_IRQ(void)
     return;
   }
   PULSECOUNT++;
-  
-  Timer2->setOverflow(v, TICK_FORMAT);//Set ARR register of the system for frequency of the system form 1Mhz(1) to 15Hz (65534)
-  Timer2->setCaptureCompare(1, v / 2, TICK_COMPARE_FORMAT);// set capture compare register for duty cycle (ARR/x%)
+
+  Timer2->setOverflow(v, TICK_FORMAT);                      //Set ARR register of the system for frequency of the system form 1Mhz(1) to 15Hz (65534)
+  Timer2->setCaptureCompare(1, v / 2, TICK_COMPARE_FORMAT); // set capture compare register for duty cycle (ARR/x%)
 }
-#endif//End interrupt functions
+#endif //End interrupt functions
 
 /**
   * @brief  Disable Timer Interrupt as well as PWM
@@ -112,7 +112,7 @@ void disablePulseOut(void)
   TCCR1A &= ~(1 << COM1A1); //Disable pulse output through Timer 1
   TIMSK1 &= ~(1 << OCIE1A); //Disable Interrupt of Timer 1
 #elif defined(STM32F1xx)
-  Timer2->setCaptureCompare(1, 0, TICK_COMPARE_FORMAT);// set capture compare register for duty cycle (ARR/x%)
+  Timer2->setCaptureCompare(1, 0, TICK_COMPARE_FORMAT); // set capture compare register for duty cycle (ARR/x%)
   Timer2->pause();
 #endif
 }
@@ -125,12 +125,7 @@ void disablePulseOut(void)
 void setup()
 {
   /**************************Pin Initialization*****************************/
-#ifdef __AVR__
-  pinMode(9, OUTPUT); //Pulse Output
-#elif defined(STM32F1xx)
-  pinMode(PA_0, OUTPUT); //Pulse Output
-#endif
-
+  pinMode(PWM_OUT, OUTPUT); //Pulse Output
   pinMode(DIR_PIN, OUTPUT);
   pinMode(LS1_PIN, INPUT);
   pinMode(LS2_PIN, INPUT);
@@ -159,13 +154,13 @@ void setup()
   sei();
 #elif STM32F1xx
   //Timer 2
-  Timer2->pause();
-  Timer2->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_0);
-  Timer2->setOverflow(65534, TICK_FORMAT);
-  Timer2->setPrescaleFactor(168);
-  Timer2->attachInterrupt(TIM2_IRQ);
-  Timer2->refresh();
-  Timer2->pause();
+  Timer2->pause();                                     //stop Timer 2
+  Timer2->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_0); // set PWM mode with PWM pin
+  Timer2->setOverflow(65534, TICK_FORMAT);             // set ARR of the TIMER2 to 65334
+  Timer2->setPrescaleFactor(168);                      // set prescalar 168Mhz/168 = 1MHz
+  Timer2->attachInterrupt(TIM2_IRQ);                   // set call back function
+  Timer2->refresh();                                   // update all the parameters
+  Timer2->pause();                                     // dont start timer yet
 #endif
 }
 
