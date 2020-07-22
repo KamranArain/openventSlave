@@ -30,7 +30,7 @@ float t = 0.0;
 float Tt;
 float ta = 0.0;
 float td = 0.0;
-float minSpeed = 400.0;
+float minSpeed = 400.0; 
 float maxSpd = 0.0;
 float mySpeed = 0.0;
 
